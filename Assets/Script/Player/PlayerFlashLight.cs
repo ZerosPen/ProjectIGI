@@ -88,6 +88,19 @@ public class PlayerFlashLight : Player
                 sr. color = Color.yellow;
                 revealedObjects.Add(sr);
             }
+
+            Enemy enemy = hit.GetComponent<Enemy>();
+            if (enemy != null)
+            {
+                if (NarrowFlashLight)
+                {
+                    enemy.hitBylight = true;
+                }
+                else
+                {
+                    enemy.hitBylight = false;
+                }
+            }
         }
     }
 
@@ -100,10 +113,19 @@ public class PlayerFlashLight : Player
                 sr.enabled = false;
                 sr.color = Color.yellow;
             }
+
+            // Check enemy component
+            Enemy enemy = sr?.GetComponent<Enemy>();
+            if (enemy != null)
+            {
+                enemy.SetHitByLight(false);
+            }
         }
+
         revealedObjects.Clear();
     }
 
+    #region (Input System)
     public void TurnFlashLight(InputAction.CallbackContext context)
     {
         if (context.performed)
@@ -134,7 +156,6 @@ public class PlayerFlashLight : Player
             SetFlashlightMode();
         }
     }
-
 
     public void OnSwitchModeFlashLight(InputAction.CallbackContext context)
     {
@@ -179,6 +200,7 @@ public class PlayerFlashLight : Player
         flashLightOrigin.rotation = Quaternion.Euler(0, 0, angle -90);
     }
 
+    #endregion
 
     void SetFlashlightMode()
     {

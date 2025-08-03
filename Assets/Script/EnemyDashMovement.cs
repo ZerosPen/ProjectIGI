@@ -58,17 +58,29 @@ public class EnemyDashMovement : MonoBehaviour
     {
         canDash = false;
         isDashing = true;
-        
+
         float perpendicularAngle = Random.value > 0.5f ? 90f : -90f;
         dashDirection = Quaternion.Euler(0, 0, perpendicularAngle) * movement;
         dashDirection.Normalize();
 
-        yield return new WaitForSeconds(dashDuration);
-        
+        // Check for obstacle before dashing
+        float dashDistance = dashSpeed * dashDuration;
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, dashDirection, dashDistance, LayerMask.GetMask("Obstacle")); // Adjust your wall layer mask here
+
+        if (hit.collider == null)
+        {
+            rb.AddForce(dashDirection * dashSpeed, ForceMode2D.Impulse);
+            yield return new WaitForSeconds(dashDuration);
+            rb.velocity = Vector2.zero;
+        }
+        else
+        {
+            Debug.Log("Dash blocked by wall.");
+        }
+
         isDashing = false;
-        
+
         yield return new WaitForSeconds(dashCooldown);
-        
         canDash = true;
     }
 }
