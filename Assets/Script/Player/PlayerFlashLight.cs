@@ -81,25 +81,21 @@ public class PlayerFlashLight : Player
 
         foreach (Collider2D hit in hits)
         {
+            if (hit == null || hit.gameObject == null)
+                continue;
+
             SpriteRenderer sr = hit.GetComponent<SpriteRenderer>();
             if (sr != null)
             {
                 sr.enabled = true;
-                sr. color = Color.yellow;
+                sr.color = Color.yellow;
                 revealedObjects.Add(sr);
             }
 
             Enemy enemy = hit.GetComponent<Enemy>();
-            if (enemy != null)
+            if (enemy != null && enemy.gameObject != null)
             {
-                if (NarrowFlashLight)
-                {
-                    enemy.hitBylight = true;
-                }
-                else
-                {
-                    enemy.hitBylight = false;
-                }
+                enemy.hitBylight = NarrowFlashLight;
             }
         }
     }
@@ -108,17 +104,24 @@ public class PlayerFlashLight : Player
     {
         foreach (SpriteRenderer sr in revealedObjects)
         {
-            if (sr != null)
+            if (sr == null || sr.gameObject == null) continue;
+
+            try
             {
                 sr.enabled = false;
                 sr.color = Color.yellow;
-            }
 
-            // Check enemy component
-            Enemy enemy = sr?.GetComponent<Enemy>();
-            if (enemy != null)
+                // Try safely disabling the hitBylight flag
+                Enemy enemy = sr.GetComponent<Enemy>();
+                if (enemy != null)
+                {
+                    enemy.hitBylight = false;
+                }
+            }
+            catch (MissingReferenceException)
             {
-                enemy.SetHitByLight(false);
+                // Object is already destroyed, skip
+                continue;
             }
         }
 
@@ -153,6 +156,7 @@ public class PlayerFlashLight : Player
                 NarrowFlashLight = false;
                 flashLight.enabled = FlashLight;
             }
+            SoundManager.instance.PlaySound2D("FlashLight");
             SetFlashlightMode();
         }
     }

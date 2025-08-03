@@ -70,6 +70,11 @@ public class Player : MonoBehaviour
 
         // Update previous set
         previouslyDetected = currentlyDetected;
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            MusicManager.instance.playMusic("BGM");
+        }
     }
 
     private void OnDrawGizmosSelected()
