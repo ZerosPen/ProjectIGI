@@ -57,11 +57,9 @@ public class PlayerFlashLight : Player
 
         battery = Mathf.Clamp(battery, 0f, maxBattery);
 
-        if(flashLightOrigin != null)
-{
-            float offsetDistance = 0.3f;
-            Vector3 targetPos = transform.position + smoothedDirection * offsetDistance;
-            flashLightOrigin.position = Vector3.Lerp(flashLightOrigin.position, targetPos, Time.deltaTime * 10f);
+        if (flashLightOrigin != null)
+        {
+            flashLightOrigin.position = transform.position;
         }
 
         if (battery <= 0f)
@@ -171,19 +169,14 @@ public class PlayerFlashLight : Player
         Vector3 pointerWorldPos = Camera.main.ScreenToWorldPoint(pointerScreenPos);
         pointerWorldPos.z = 0f;
 
-        Vector2 mouseScreenPos = context.ReadValue<Vector2>();
-        targetWorldPos = Camera.main.ScreenToWorldPoint(mouseScreenPos);
-        targetWorldPos.z = 0f;
+        // Direction from player to cursor
+        Vector3 direction = (pointerWorldPos - transform.position).normalized;
 
-        // Calculate smooth direction
-        Vector3 rawDirection = (targetWorldPos - transform.position).normalized;
-        smoothedDirection = Vector3.Lerp(smoothedDirection, rawDirection, Time.deltaTime * 10f);
+        // Get angle in degrees
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
 
-        // Smooth rotation
-        float angle = Mathf.Atan2(smoothedDirection.y, smoothedDirection.x) * Mathf.Rad2Deg;
-        Quaternion targetRotation = Quaternion.Euler(0, 0, angle);
-        float rotationSpeed = 720f;
-        flashLightOrigin.rotation = Quaternion.RotateTowards(flashLightOrigin.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        // Apply angle with correct offset (adjust this based on your setup)
+        flashLightOrigin.rotation = Quaternion.Euler(0, 0, angle -90);
     }
 
 
