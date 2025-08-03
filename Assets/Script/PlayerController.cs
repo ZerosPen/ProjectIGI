@@ -116,6 +116,15 @@ public partial class @PlayerController: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""MoveFlash"",
+                    ""type"": ""Value"",
+                    ""id"": ""b4c07c0c-59d7-4e7c-b275-e0ae6fb94492"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -140,6 +149,17 @@ public partial class @PlayerController: IInputActionCollection2, IDisposable
                     ""action"": ""SwitchMode"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b723e557-1c48-41a3-a372-70f0822f0c02"",
+                    ""path"": ""<Mouse>/position"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""MoveFlash"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -153,6 +173,7 @@ public partial class @PlayerController: IInputActionCollection2, IDisposable
         m_FlashLight = asset.FindActionMap("FlashLight", throwIfNotFound: true);
         m_FlashLight_TurnOnFlashLight = m_FlashLight.FindAction("TurnOnFlashLight", throwIfNotFound: true);
         m_FlashLight_SwitchMode = m_FlashLight.FindAction("SwitchMode", throwIfNotFound: true);
+        m_FlashLight_MoveFlash = m_FlashLight.FindAction("MoveFlash", throwIfNotFound: true);
     }
 
     ~@PlayerController()
@@ -268,12 +289,14 @@ public partial class @PlayerController: IInputActionCollection2, IDisposable
     private List<IFlashLightActions> m_FlashLightActionsCallbackInterfaces = new List<IFlashLightActions>();
     private readonly InputAction m_FlashLight_TurnOnFlashLight;
     private readonly InputAction m_FlashLight_SwitchMode;
+    private readonly InputAction m_FlashLight_MoveFlash;
     public struct FlashLightActions
     {
         private @PlayerController m_Wrapper;
         public FlashLightActions(@PlayerController wrapper) { m_Wrapper = wrapper; }
         public InputAction @TurnOnFlashLight => m_Wrapper.m_FlashLight_TurnOnFlashLight;
         public InputAction @SwitchMode => m_Wrapper.m_FlashLight_SwitchMode;
+        public InputAction @MoveFlash => m_Wrapper.m_FlashLight_MoveFlash;
         public InputActionMap Get() { return m_Wrapper.m_FlashLight; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -289,6 +312,9 @@ public partial class @PlayerController: IInputActionCollection2, IDisposable
             @SwitchMode.started += instance.OnSwitchMode;
             @SwitchMode.performed += instance.OnSwitchMode;
             @SwitchMode.canceled += instance.OnSwitchMode;
+            @MoveFlash.started += instance.OnMoveFlash;
+            @MoveFlash.performed += instance.OnMoveFlash;
+            @MoveFlash.canceled += instance.OnMoveFlash;
         }
 
         private void UnregisterCallbacks(IFlashLightActions instance)
@@ -299,6 +325,9 @@ public partial class @PlayerController: IInputActionCollection2, IDisposable
             @SwitchMode.started -= instance.OnSwitchMode;
             @SwitchMode.performed -= instance.OnSwitchMode;
             @SwitchMode.canceled -= instance.OnSwitchMode;
+            @MoveFlash.started -= instance.OnMoveFlash;
+            @MoveFlash.performed -= instance.OnMoveFlash;
+            @MoveFlash.canceled -= instance.OnMoveFlash;
         }
 
         public void RemoveCallbacks(IFlashLightActions instance)
@@ -324,5 +353,6 @@ public partial class @PlayerController: IInputActionCollection2, IDisposable
     {
         void OnTurnOnFlashLight(InputAction.CallbackContext context);
         void OnSwitchMode(InputAction.CallbackContext context);
+        void OnMoveFlash(InputAction.CallbackContext context);
     }
 }

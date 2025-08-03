@@ -20,11 +20,14 @@ public class PlayerFlashLight : Player
     public bool FlashLight;
     public bool WideFlashLight;
     public bool NarrowFlashLight;
+    private Vector3 smoothedDirection = Vector3.right;
+    private Vector3 targetWorldPos;
 
     private List<SpriteRenderer> revealedObjects = new List<SpriteRenderer>();
     private void Start()
     {
         flashLight.enabled = FlashLight = false;
+        smoothedDirection = Vector3.right;
         battery = maxBattery;
     }
 
@@ -53,6 +56,13 @@ public class PlayerFlashLight : Player
         }
 
         battery = Mathf.Clamp(battery, 0f, maxBattery);
+
+        if(flashLightOrigin != null)
+{
+            float offsetDistance = 0.3f;
+            Vector3 targetPos = transform.position + smoothedDirection * offsetDistance;
+            flashLightOrigin.position = Vector3.Lerp(flashLightOrigin.position, targetPos, Time.deltaTime * 10f);
+        }
 
         if (battery <= 0f)
         {
@@ -154,6 +164,28 @@ public class PlayerFlashLight : Player
         }
         SetFlashlightMode();
     }
+
+    public void OnPointerPosition(InputAction.CallbackContext context)
+    {
+        Vector2 pointerScreenPos = context.ReadValue<Vector2>();
+        Vector3 pointerWorldPos = Camera.main.ScreenToWorldPoint(pointerScreenPos);
+        pointerWorldPos.z = 0f;
+
+        Vector2 mouseScreenPos = context.ReadValue<Vector2>();
+        targetWorldPos = Camera.main.ScreenToWorldPoint(mouseScreenPos);
+        targetWorldPos.z = 0f;
+
+        // Calculate smooth direction
+        Vector3 rawDirection = (targetWorldPos - transform.position).normalized;
+        smoothedDirection = Vector3.Lerp(smoothedDirection, rawDirection, Time.deltaTime * 10f);
+
+        // Smooth rotation
+        float angle = Mathf.Atan2(smoothedDirection.y, smoothedDirection.x) * Mathf.Rad2Deg;
+        Quaternion targetRotation = Quaternion.Euler(0, 0, angle);
+        float rotationSpeed = 720f;
+        flashLightOrigin.rotation = Quaternion.RotateTowards(flashLightOrigin.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+    }
+
 
     void SetFlashlightMode()
     {
