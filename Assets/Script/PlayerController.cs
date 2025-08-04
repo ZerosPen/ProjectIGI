@@ -162,6 +162,34 @@ public partial class @PlayerController: IInputActionCollection2, IDisposable
                     ""isPartOfComposite"": false
                 }
             ]
+        },
+        {
+            ""name"": ""interactive"",
+            ""id"": ""4961ecea-f87b-4817-9def-f4a8ddf69dec"",
+            ""actions"": [
+                {
+                    ""name"": ""Interact"",
+                    ""type"": ""Button"",
+                    ""id"": ""b4223762-4406-48d2-9123-fe527d3c6086"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                }
+            ],
+            ""bindings"": [
+                {
+                    ""name"": """",
+                    ""id"": ""16b53f69-148f-4a26-bbfc-45390b99a146"",
+                    ""path"": ""<Keyboard>/f"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Interact"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                }
+            ]
         }
     ],
     ""controlSchemes"": []
@@ -174,12 +202,16 @@ public partial class @PlayerController: IInputActionCollection2, IDisposable
         m_FlashLight_TurnOnFlashLight = m_FlashLight.FindAction("TurnOnFlashLight", throwIfNotFound: true);
         m_FlashLight_SwitchMode = m_FlashLight.FindAction("SwitchMode", throwIfNotFound: true);
         m_FlashLight_MoveFlash = m_FlashLight.FindAction("MoveFlash", throwIfNotFound: true);
+        // interactive
+        m_interactive = asset.FindActionMap("interactive", throwIfNotFound: true);
+        m_interactive_Interact = m_interactive.FindAction("Interact", throwIfNotFound: true);
     }
 
     ~@PlayerController()
     {
         UnityEngine.Debug.Assert(!m_Movement.enabled, "This will cause a leak and performance issues, PlayerController.Movement.Disable() has not been called.");
         UnityEngine.Debug.Assert(!m_FlashLight.enabled, "This will cause a leak and performance issues, PlayerController.FlashLight.Disable() has not been called.");
+        UnityEngine.Debug.Assert(!m_interactive.enabled, "This will cause a leak and performance issues, PlayerController.interactive.Disable() has not been called.");
     }
 
     public void Dispose()
@@ -345,6 +377,52 @@ public partial class @PlayerController: IInputActionCollection2, IDisposable
         }
     }
     public FlashLightActions @FlashLight => new FlashLightActions(this);
+
+    // interactive
+    private readonly InputActionMap m_interactive;
+    private List<IInteractiveActions> m_InteractiveActionsCallbackInterfaces = new List<IInteractiveActions>();
+    private readonly InputAction m_interactive_Interact;
+    public struct InteractiveActions
+    {
+        private @PlayerController m_Wrapper;
+        public InteractiveActions(@PlayerController wrapper) { m_Wrapper = wrapper; }
+        public InputAction @Interact => m_Wrapper.m_interactive_Interact;
+        public InputActionMap Get() { return m_Wrapper.m_interactive; }
+        public void Enable() { Get().Enable(); }
+        public void Disable() { Get().Disable(); }
+        public bool enabled => Get().enabled;
+        public static implicit operator InputActionMap(InteractiveActions set) { return set.Get(); }
+        public void AddCallbacks(IInteractiveActions instance)
+        {
+            if (instance == null || m_Wrapper.m_InteractiveActionsCallbackInterfaces.Contains(instance)) return;
+            m_Wrapper.m_InteractiveActionsCallbackInterfaces.Add(instance);
+            @Interact.started += instance.OnInteract;
+            @Interact.performed += instance.OnInteract;
+            @Interact.canceled += instance.OnInteract;
+        }
+
+        private void UnregisterCallbacks(IInteractiveActions instance)
+        {
+            @Interact.started -= instance.OnInteract;
+            @Interact.performed -= instance.OnInteract;
+            @Interact.canceled -= instance.OnInteract;
+        }
+
+        public void RemoveCallbacks(IInteractiveActions instance)
+        {
+            if (m_Wrapper.m_InteractiveActionsCallbackInterfaces.Remove(instance))
+                UnregisterCallbacks(instance);
+        }
+
+        public void SetCallbacks(IInteractiveActions instance)
+        {
+            foreach (var item in m_Wrapper.m_InteractiveActionsCallbackInterfaces)
+                UnregisterCallbacks(item);
+            m_Wrapper.m_InteractiveActionsCallbackInterfaces.Clear();
+            AddCallbacks(instance);
+        }
+    }
+    public InteractiveActions @interactive => new InteractiveActions(this);
     public interface IMovementActions
     {
         void OnMovement(InputAction.CallbackContext context);
@@ -354,5 +432,9 @@ public partial class @PlayerController: IInputActionCollection2, IDisposable
         void OnTurnOnFlashLight(InputAction.CallbackContext context);
         void OnSwitchMode(InputAction.CallbackContext context);
         void OnMoveFlash(InputAction.CallbackContext context);
+    }
+    public interface IInteractiveActions
+    {
+        void OnInteract(InputAction.CallbackContext context);
     }
 }

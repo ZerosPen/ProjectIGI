@@ -53,6 +53,12 @@ MonoBehaviour:
   - groupId: FlashLight
     clips:
     - {fileID: 8300000, guid: 0d094207bc2ac73429ad89b69b9d97be, type: 3}
+  - groupId: Click
+    clips:
+    - {fileID: 8300000, guid: c046abf5a8aece646aa0d342f0641b6a, type: 3}
+  - groupId: Hover
+    clips:
+    - {fileID: 8300000, guid: a26c23430329a7341b149fdcc9f4d3dc, type: 3}
 --- !u!114 &6351644439985562366
 MonoBehaviour:
   m_ObjectHideFlags: 0

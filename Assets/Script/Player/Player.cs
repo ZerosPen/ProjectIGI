@@ -5,21 +5,66 @@ using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 
+[System.Serializable]
+public struct RevealableObject
+{
+    public GameObject obj;
+    public SpriteRenderer sr;
+    public Light2D light;
+
+    public RevealableObject(GameObject obj)
+    {
+        this.obj = obj;
+        this.sr = obj.GetComponentInChildren<SpriteRenderer>();
+        this.light = obj.GetComponentInChildren<Light2D>();
+    }
+
+    public void Show()
+    {
+        if (sr != null)
+        {
+            sr.enabled = true;
+        }
+
+        if (light != null)
+        {
+            light.enabled = true;
+        }
+    }
+
+    public void Hide()
+    {
+        if (sr != null)
+        {
+            sr.enabled = false;
+        }
+
+        if (light != null)
+        {
+            light.enabled = false;
+        }
+    }
+}
 
 public class Player : MonoBehaviour
 {
     [Header("Status Player")]
+    public int FragmentLight;
     public float maxHealthpoint;
     public float radiusAroundPlayer;
     public Transform sourecLightAroundPlayer;
     public Light2D lightAroundPlayer;
     public LayerMask detectableLayer;
+    [SerializeField] private bool getHit;
 
-    public float healthPoint { get; set; }
+    public static bool FlashLightOn { get; protected set; }
+    public static bool HasFlashLight { get; protected set; }
+    public float healthPoint;
 
     [Header("References")]
     public Slider healthbar;
-    private HashSet<GameObject> previouslyDetected = new HashSet<GameObject>();
+
+    private Dictionary<GameObject, RevealableObject> previouslyDetected = new Dictionary<GameObject, RevealableObject>();
 
     private void Start()
     {
@@ -29,51 +74,74 @@ public class Player : MonoBehaviour
     private void Update()
     {
         healthbar.value = healthPoint / maxHealthpoint;
-
         lightAroundPlayer.pointLightOuterRadius = radiusAroundPlayer;
+
         Collider2D[] detected = Physics2D.OverlapCircleAll(sourecLightAroundPlayer.position, radiusAroundPlayer, detectableLayer);
-        HashSet<GameObject> currentlyDetected = new HashSet<GameObject>();
+        Dictionary<GameObject, RevealableObject> currentlyDetected = new Dictionary<GameObject, RevealableObject>();
 
         foreach (Collider2D col in detected)
         {
             GameObject obj = col.gameObject;
-            currentlyDetected.Add(obj);
 
-            if (!previouslyDetected.Contains(obj))
+            if (!previouslyDetected.ContainsKey(obj))
             {
-                // Show effect (e.g. highlight)
-                SpriteRenderer sr = obj.GetComponent<SpriteRenderer>();
-                if (sr != null)
-                {
-                    sr.enabled = true;
-                    sr.color = Color.yellow; // or your highlight color
-                }
-                    
+                RevealableObject revealObj = new RevealableObject(obj);
+                revealObj.Show();
+                currentlyDetected[obj] = revealObj;
+            }
+            else
+            {
+                // Still in range, reuse previous reference
+                currentlyDetected[obj] = previouslyDetected[obj];
             }
         }
 
-        // Find objects that are no longer in range
-        foreach (GameObject obj in previouslyDetected)
+        // Hide objects no longer detected
+        foreach (var pair in previouslyDetected)
         {
-            if (!currentlyDetected.Contains(obj))
+            if (!currentlyDetected.ContainsKey(pair.Key))
             {
-                // Hide effect
-                SpriteRenderer sr = obj.GetComponent<SpriteRenderer>();
-                if (sr != null)
-                {
-                    sr.enabled = false;
-                    sr.color = Color.white; // or reset to original
-                }
-                    
+                pair.Value.Hide();
             }
         }
 
-        // Update previous set
+        // Update
         previouslyDetected = currentlyDetected;
+        GameManager.Instance.totalFargementLight = FragmentLight;
+        Debug.Log($"HP {healthPoint}");
+    }
 
-        if (Input.GetKeyDown(KeyCode.Space))
+    public void OnIntreaction(InputAction.CallbackContext context)
+    {
+        if (context.performed && !HasFlashLight)
         {
-            MusicManager.instance.playMusic("BGM");
+            HasFlashLight = true;
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.CompareTag("FragmentLight"))
+        {
+            FragmentLight++;
+            Destroy(collision.gameObject);
+        }
+        else if (collision.CompareTag("Battery"))
+        {
+            Debug.Log("Try grab Battery");
+            PlayerFlashLight battery = GetComponent<PlayerFlashLight>();
+            battery.battery += 25;
+            Destroy(collision.gameObject);
+        }
+    }
+
+    public void TakingDamage(float damage)
+    {
+        Debug.Log("hit by enemy");
+        healthPoint -= damage;
+        if (healthPoint <= 0)
+        {
+            gameObject.SetActive(false);
         }
     }
 
