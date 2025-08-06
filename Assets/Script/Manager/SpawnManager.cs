@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 
 public class SpawnManager : MonoBehaviour
@@ -12,6 +13,7 @@ public class SpawnManager : MonoBehaviour
     [SerializeField] private GameObject[] enemys;
     [SerializeField] private Transform[] spawnerEnemies;
     [SerializeField] private int enemyCaps = 50;
+    private int spawnIndex;
 
     [Header("Items Spawner Settings")]
     [SerializeField] private GameObject containerItems;
@@ -39,15 +41,22 @@ public class SpawnManager : MonoBehaviour
 
     private void Update()
     {
-        GameObject[] spawnerObjects = GameObject.FindGameObjectsWithTag("ItemSpawner");
-        itemSpawner = new Transform[spawnerObjects.Length];
-        for (int i = 0; i < spawnerObjects.Length; i++)
+        GameObject[] spawnerItemObjects = GameObject.FindGameObjectsWithTag("ItemSpawner");
+        itemSpawner = new Transform[spawnerItemObjects.Length];
+        for (int i = 0; i < spawnerItemObjects.Length; i++)
         {
-            itemSpawner[i] = spawnerObjects[i].transform;
+            itemSpawner[i] = spawnerItemObjects[i].transform;
+        }
+
+        GameObject[] spawnerEnemyObjects = GameObject.FindGameObjectsWithTag("EnemySpawner");
+        spawnerEnemies = new Transform[spawnerEnemyObjects.Length];
+        for (int i = 0; i < spawnerEnemyObjects.Length; i++)
+        {
+            spawnerEnemies[i] = spawnerEnemyObjects[i].transform;
         }
     }
 
-    public void GetStartSpawning(int required)
+    public void GetStartSpawning()
     {
         if (spawnerEnemies.Length == 0 || itemSpawner.Length == 0)
         {
@@ -60,8 +69,25 @@ public class SpawnManager : MonoBehaviour
             spawnerOccupied[spawner] = false; // all spawners are free at start
         }
 
-        //StartCoroutine(SpawningEnemy());
-        SpawnItem();
+        foreach (Transform itemLocation in itemSpawner)
+        {
+            if (itemLocation != null)
+            {
+                spawnerOccupied[itemLocation] = false;
+            }
+        }
+
+        if (GameManager.Instance.isGameActive)
+        {
+            StartCoroutine(SpawningEnemy());
+            SpawnItem();
+        }
+        else
+        {
+            spawnerOccupied.Clear();
+            currEnemyCount = 0;
+            currItemCount = 0;
+        }
     }
 
     IEnumerator SpawningEnemy()
@@ -122,16 +148,24 @@ public class SpawnManager : MonoBehaviour
         GameObject enemyPrefab = enemys[Random.Range(0, enemys.Length)];
 
         // Choose a balanced spawn point using round-robin or random
-        int spawnIndex = currEnemyCount % spawnerEnemies.Length;
-        Transform spawnPoint = spawnerEnemies[spawnIndex];
+        
+        if (spawnerEnemies.Length > 0)
+        {
+            spawnIndex = currEnemyCount % spawnerEnemies.Length;
+        }
+        
+        if (spawnerEnemies != null)
+        {
+            Transform spawnPoint = spawnerEnemies[spawnIndex];
 
-        GameObject enemy = Instantiate(enemyPrefab, spawnPoint.position, Quaternion.identity);
+            GameObject enemy = Instantiate(enemyPrefab, spawnPoint.position, Quaternion.identity);
 
-        // Parent the enemy for cleaner hierarchy
-        if (containerEnemySpawner != null)
-            enemy.transform.parent = containerEnemySpawner.transform;
+            // Parent the enemy for cleaner hierarchy
+            if (containerEnemySpawner != null)
+                enemy.transform.parent = containerEnemySpawner.transform;
 
-        currEnemyCount++;
+            currEnemyCount++;
+        }
     }
 
 
@@ -147,5 +181,40 @@ public class SpawnManager : MonoBehaviour
     public void StopSpawning()
     {
         stopSpawning = true;
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Debug.Log("Scene loaded: " + scene.name);
+
+        //Enemy Spawner
+        if (containerEnemySpawner == null) containerEnemySpawner = GameObject.Find("ContainerEnemy");
+
+        GameObject[] enemySpawners = GameObject.FindGameObjectsWithTag("EnemySpawner");
+        spawnerEnemies = new Transform[enemySpawners.Length];
+        for (int i = 0; i < enemySpawners.Length; i++)
+        {
+            spawnerEnemies[i] = enemySpawners[i].transform;
+        }
+
+        //item Spawner
+        if (containerItems == null) containerItems = GameObject.Find("ContainerItems");
+
+        GameObject[] spawnerObjects = GameObject.FindGameObjectsWithTag("ItemSpawner");
+        itemSpawner = new Transform[spawnerObjects.Length];
+        for (int i = 0; i < spawnerObjects.Length; i++)
+        {
+            itemSpawner[i] = spawnerObjects[i].transform;
+        }
     }
 }

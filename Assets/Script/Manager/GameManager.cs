@@ -5,6 +5,10 @@ using UnityEngine;
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
+
+    [Header("Status Game")]
+    public bool isGameActive;
+
     [SerializeField] private int fargementLight;
     public int totalFargementLight;
 
@@ -22,12 +26,16 @@ public class GameManager : MonoBehaviour
     private void Update()
     {
         UIManager.Instance.UpdayeFragmentLight(totalFargementLight, fargementLight);
-        SpawnManager.Instance.GetStartSpawning(fargementLight);
+        SpawnManager.Instance.GetStartSpawning();
+
+        if (totalFargementLight == fargementLight)
+        {
+            GameIsFinish();
+        }
     }
 
     public void GameIsFinish()
     {
-
+        Debug.Log("The game is done");
     }
-
 }

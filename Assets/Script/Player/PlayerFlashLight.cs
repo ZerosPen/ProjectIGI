@@ -117,6 +117,14 @@ public class PlayerFlashLight : Player
                 if (enemy != null)
                 {
                     enemy.SetAvaible(true);
+                    if (NarrowFlashLight)
+                    {
+                        enemy.hitBylight = true;
+                    }
+                    else
+                    {
+                        enemy.hitBylight = false;
+                    }
                     currentDetectedFlashLightEnemy.Add(enemy);
                 }
             }

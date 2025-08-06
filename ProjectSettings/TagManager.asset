@@ -9,6 +9,7 @@ TagManager:
   - Item
   - ItemSpawner
   - FragmentLight
+  - EnemySpawner
   layers:
   - Default
   - TransparentFX

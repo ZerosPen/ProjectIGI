@@ -24,7 +24,6 @@ public class items : MonoBehaviour
 
     public void SetAvaible(bool state)
     {
-        Debug.Log($"{gameObject.name} SetAvaible called with: {state}");
         if (sr != null) sr.enabled = state;
         if (light2d != null) light2d.enabled = state;
     }
