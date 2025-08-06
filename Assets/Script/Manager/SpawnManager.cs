@@ -60,7 +60,7 @@ public class SpawnManager : MonoBehaviour
             spawnerOccupied[spawner] = false; // all spawners are free at start
         }
 
-        StartCoroutine(SpawningEnemy());
+        //StartCoroutine(SpawningEnemy());
         SpawnItem();
     }
 

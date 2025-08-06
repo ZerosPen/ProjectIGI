@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
@@ -52,9 +53,11 @@ public class PlayerFlashLight : Player
         {
             battery -= 0.2f * Time.deltaTime;
         }
+
+
         if (FlashLightOn)
         {
-            RevealObjectsInLight();
+            RevealObjectsWithFlashlight();
         }
         else
         {
@@ -87,15 +90,16 @@ public class PlayerFlashLight : Player
 
     #region HideAndShowObject
 
-    void RevealObjectsInLight()
+    private void RevealObjectsWithFlashlight()
     {
-        currentDetectedFlashLightItem.Clear(); 
-        currentDetectedFlashLightEnemy.Clear();
+        if (flashLight == null || !flashLight.enabled)
+            return;
 
-        Collider2D[] hits = Physics2D.OverlapCircleAll(flashLightOrigin.position, lightRadius, revealableLayer);
-        HideAllObject();
+        Collider2D[] detected = Physics2D.OverlapCircleAll(flashLightOrigin.position, lightRadius, revealableLayer);
+        HashSet<Enemy> currentDetectedFlashLightEnemy = new HashSet<Enemy>();
+        HashSet<items> currentDetectedFlashLightItem = new HashSet<items>();
 
-        foreach (Collider2D collide in hits)
+        foreach (Collider2D collide in detected)
         {
             if (collide.CompareTag("FragmentLight") || collide.CompareTag("Battery"))
             {
@@ -113,12 +117,12 @@ public class PlayerFlashLight : Player
                 if (enemy != null)
                 {
                     enemy.SetAvaible(true);
-                    enemy.hitBylight = true;
                     currentDetectedFlashLightEnemy.Add(enemy);
                 }
             }
         }
 
+        // Hide previously visible items not detected anymore
         foreach (items prevItem in lastDetectFlashLightItem)
         {
             if (!currentDetectedFlashLightItem.Contains(prevItem))
@@ -127,6 +131,7 @@ public class PlayerFlashLight : Player
             }
         }
 
+        // Hide previously visible enemies not detected anymore
         foreach (Enemy prevEnemy in lastDetectFlashLightEnemy)
         {
             if (!currentDetectedFlashLightEnemy.Contains(prevEnemy))
@@ -135,11 +140,12 @@ public class PlayerFlashLight : Player
             }
         }
 
-        lastDetectFlashLightItem = currentDetectedFlashLightItem.ToHashSet();
-        lastDetectFlashLightEnemy = currentDetectedFlashLightEnemy.ToHashSet();
+        lastDetectFlashLightItem = currentDetectedFlashLightItem;
+        lastDetectFlashLightEnemy = currentDetectedFlashLightEnemy;
     }
 
-    void HideAllObject()
+
+void HideAllObject()
     {
         foreach (items prevItem in lastDetectFlashLightItem)
         {
