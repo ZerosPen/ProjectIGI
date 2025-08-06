@@ -20,9 +20,18 @@ public class Enemy : Entity
     public float retreatDuration = 1f;
     private Rigidbody2D rb;
 
-    private void Start()
+    [Header("References")]
+    private SpriteRenderer sr;
+
+    private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        sr = GetComponent<SpriteRenderer>();
+    }
+
+    private void Start()
+    {
+        SetAvaible(false);
     }
 
     private void Update()
@@ -45,9 +54,12 @@ public class Enemy : Entity
         }
     }
 
-    public void SetHitByLight(bool value)
+    public void SetAvaible(bool state)
     {
-        hitBylight = value;
+        if (sr != null)
+        {
+            sr.enabled = state;
+        }
     }
 
     private void OnTriggerEnter2D(Collider2D collision)

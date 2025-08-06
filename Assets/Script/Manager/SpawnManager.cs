@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+
 public class SpawnManager : MonoBehaviour
 {
     public static SpawnManager Instance;
@@ -24,14 +25,25 @@ public class SpawnManager : MonoBehaviour
 
     [SerializeField] private int currEnemyCount = 0;
     [SerializeField] private int currItemCount = 0;
+    private Dictionary<Transform, bool> spawnerOccupied = new Dictionary<Transform, bool>();
 
-    private void Start()
+    private void Awake()
     {
         if (Instance != null) Destroy(gameObject);
         else
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+        }
+    }
+
+    private void Update()
+    {
+        GameObject[] spawnerObjects = GameObject.FindGameObjectsWithTag("ItemSpawner");
+        itemSpawner = new Transform[spawnerObjects.Length];
+        for (int i = 0; i < spawnerObjects.Length; i++)
+        {
+            itemSpawner[i] = spawnerObjects[i].transform;
         }
     }
 
@@ -43,11 +55,9 @@ public class SpawnManager : MonoBehaviour
             return;
         }
 
-        GameObject[] spawnerObjects = GameObject.FindGameObjectsWithTag("ItemSpawner");
-        itemSpawner = new Transform[spawnerObjects.Length];
-        for (int i = 0; i < spawnerObjects.Length; i++)
+        foreach (Transform spawner in itemSpawner)
         {
-            itemSpawner[i] = spawnerObjects[i].transform;
+            spawnerOccupied[spawner] = false; // all spawners are free at start
         }
 
         StartCoroutine(SpawningEnemy());
@@ -77,11 +87,30 @@ public class SpawnManager : MonoBehaviour
             return;
         }
 
-        Transform randomSpawner = itemSpawner[Random.Range(0, itemSpawner.Length)];
-        GameObject  randomItem = items[Random.Range(0, items.Length)];
-        GameObject newItem = Instantiate(randomItem, randomSpawner.position, Quaternion.identity);
+        // Get list of free spawners
+        List<Transform> freeSpawners = new List<Transform>();
+        foreach (var pair in spawnerOccupied)
+        {
+            if (!pair.Value)
+            {
+                freeSpawners.Add(pair.Key);
+            }
+        }
+
+        if (freeSpawners.Count == 0)
+        {
+            Debug.Log("No free spawners available");
+            return;
+        }
+
+        // Randomly choose from free spawners
+        Transform chosenSpawner = freeSpawners[Random.Range(0, freeSpawners.Count)];
+        GameObject chosenItem = items[Random.Range(0, items.Length)];
+        GameObject newItem = Instantiate(chosenItem, chosenSpawner.position, Quaternion.identity);
         newItem.transform.parent = containerItems.transform;
 
+        // Mark spawner as occupied
+        spawnerOccupied[chosenSpawner] = true;
         currItemCount++;
     }
 

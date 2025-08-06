@@ -4,47 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
-
-[System.Serializable]
-public struct RevealableObject
-{
-    public GameObject obj;
-    public SpriteRenderer sr;
-    public Light2D light;
-
-    public RevealableObject(GameObject obj)
-    {
-        this.obj = obj;
-        this.sr = obj.GetComponentInChildren<SpriteRenderer>();
-        this.light = obj.GetComponentInChildren<Light2D>();
-    }
-
-    public void Show()
-    {
-        if (sr != null)
-        {
-            sr.enabled = true;
-        }
-
-        if (light != null)
-        {
-            light.enabled = true;
-        }
-    }
-
-    public void Hide()
-    {
-        if (sr != null)
-        {
-            sr.enabled = false;
-        }
-
-        if (light != null)
-        {
-            light.enabled = false;
-        }
-    }
-}
+using static UnityEditor.Progress;
 
 public class Player : MonoBehaviour
 {
@@ -63,8 +23,10 @@ public class Player : MonoBehaviour
 
     [Header("References")]
     public Slider healthbar;
-
-    private Dictionary<GameObject, RevealableObject> previouslyDetected = new Dictionary<GameObject, RevealableObject>();
+    
+    private HashSet<items> lastDetectItem = new HashSet<items>();
+    private HashSet<Enemy> lastDetectEnemy = new HashSet<Enemy>();
+    private HashSet<Enemy> currentDetectedEnemy = new HashSet<Enemy>();
 
     private void Start()
     {
@@ -77,38 +39,52 @@ public class Player : MonoBehaviour
         lightAroundPlayer.pointLightOuterRadius = radiusAroundPlayer;
 
         Collider2D[] detected = Physics2D.OverlapCircleAll(sourecLightAroundPlayer.position, radiusAroundPlayer, detectableLayer);
-        Dictionary<GameObject, RevealableObject> currentlyDetected = new Dictionary<GameObject, RevealableObject>();
+        HashSet<items> currentDetectedItem = new HashSet<items>();
+        HashSet<Enemy> currentDetectedEnemy = new HashSet<Enemy>();
 
-        foreach (Collider2D col in detected)
+
+        foreach (Collider2D collide in detected)
         {
-            GameObject obj = col.gameObject;
-
-            if (!previouslyDetected.ContainsKey(obj))
+            if (collide.CompareTag("FragmentLight") || collide.CompareTag("Battery"))
             {
-                RevealableObject revealObj = new RevealableObject(obj);
-                revealObj.Show();
-                currentlyDetected[obj] = revealObj;
+                items item = collide.GetComponent<items>();
+                if (item != null)
+                {
+                    item.SetAvaible(true);
+                    currentDetectedItem.Add(item);
+                }
             }
-            else
+
+            if (collide.CompareTag("Enemy"))
             {
-                // Still in range, reuse previous reference
-                currentlyDetected[obj] = previouslyDetected[obj];
+                Enemy enemy = collide.GetComponent<Enemy>();
+                if (enemy != null)
+                {
+                    enemy.SetAvaible(true);
+                    currentDetectedEnemy.Add(enemy);
+                }
             }
         }
 
-        // Hide objects no longer detected
-        foreach (var pair in previouslyDetected)
+        foreach (items prevItem in lastDetectItem)
         {
-            if (!currentlyDetected.ContainsKey(pair.Key))
+            if (!currentDetectedItem.Contains(prevItem))
             {
-                pair.Value.Hide();
+                prevItem.SetAvaible(false);
             }
         }
 
-        // Update
-        previouslyDetected = currentlyDetected;
+        foreach (Enemy prevEnemy in lastDetectEnemy)
+        {
+            if (!currentDetectedEnemy.Contains(prevEnemy))
+            {
+                prevEnemy.SetAvaible(false);
+            }
+        }
+
+        lastDetectItem = currentDetectedItem;
+        lastDetectEnemy = currentDetectedEnemy;
         GameManager.Instance.totalFargementLight = FragmentLight;
-        Debug.Log($"HP {healthPoint}");
     }
 
     public void OnIntreaction(InputAction.CallbackContext context)
@@ -124,14 +100,24 @@ public class Player : MonoBehaviour
         if (collision.CompareTag("FragmentLight"))
         {
             FragmentLight++;
-            Destroy(collision.gameObject);
+            items item = collision.GetComponent<items>();
+
+            if (item! != null)
+            {
+                item.ItemGetPickUp();
+            }
         }
         else if (collision.CompareTag("Battery"))
         {
             Debug.Log("Try grab Battery");
-            PlayerFlashLight battery = GetComponent<PlayerFlashLight>();
-            battery.battery += 25;
-            Destroy(collision.gameObject);
+            PlayerFlashLight batteryValue = GetComponent<PlayerFlashLight>();
+            if (batteryValue != null) batteryValue.battery += 25;
+
+            items item = collision.GetComponent<items>();
+            if (item! != null)
+            {
+                item.ItemGetPickUp();
+            }
         }
     }
 

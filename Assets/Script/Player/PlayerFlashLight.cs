@@ -1,18 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
-
-[System.Serializable]
-public struct RevealedObjectData
-{
-    public SpriteRenderer sr;
-    public Light2D light;
-    public Enemy enemy;
-    public GameObject go;
-
-}
 
 public class PlayerFlashLight : Player
 {
@@ -33,8 +24,11 @@ public class PlayerFlashLight : Player
 
     [Header("refereance")]
     private PlayerAnimator playerAnimator;
+    private HashSet<items> lastDetectFlashLightItem = new HashSet<items>();
+    private HashSet<Enemy> lastDetectFlashLightEnemy = new HashSet<Enemy>();
+    private HashSet<Enemy> currentDetectedFlashLightEnemy = new HashSet<Enemy>();
+    private HashSet<items> currentDetectedFlashLightItem = new HashSet<items>();
 
-    private List<RevealedObjectData> revealedObjects = new List<RevealedObjectData>();
     private void Start()
     {
         playerAnimator = GetComponent<PlayerAnimator>();
@@ -64,7 +58,7 @@ public class PlayerFlashLight : Player
         }
         else
         {
-            HideAllRevealedObjects();
+            HideAllObject();
         }
 
         if (flashLight == null)
@@ -91,72 +85,80 @@ public class PlayerFlashLight : Player
         UIManager.Instance.UpdateBattery(battery);
     }
 
+    #region HideAndShowObject
+
     void RevealObjectsInLight()
     {
+        currentDetectedFlashLightItem.Clear(); 
+        currentDetectedFlashLightEnemy.Clear();
+
         Collider2D[] hits = Physics2D.OverlapCircleAll(flashLightOrigin.position, lightRadius, revealableLayer);
-        HideAllRevealedObjects();
+        HideAllObject();
 
-        foreach (Collider2D hit in hits)
+        foreach (Collider2D collide in hits)
         {
-            if (hit == null || hit.gameObject == null) continue;
-
-            GameObject go = hit.gameObject;
-
-            // Get all SpriteRenderers and Light2Ds in this object and children
-            var srs = go.GetComponentsInChildren<SpriteRenderer>(true);
-            var lights = go.GetComponentsInChildren<Light2D>(true);
-            var enemy = go.GetComponent<Enemy>();
-
-            foreach (var sr in srs)
-                sr.enabled = true;
-
-            foreach (var light in lights)
-                light.enabled = true;
-
-            if (enemy != null)
-                enemy.hitBylight = NarrowFlashLight;
-
-            // Track for hiding
-            revealedObjects.Add(new RevealedObjectData
+            if (collide.CompareTag("FragmentLight") || collide.CompareTag("Battery"))
             {
-                go = go,
-                sr = srs.Length > 0 ? srs[0] : null, // Just for backward compatibility
-                light = lights.Length > 0 ? lights[0] : null,
-                enemy = enemy
-            });
-        }
-    }
-
-    void HideAllRevealedObjects()
-    {
-        foreach (var obj in revealedObjects)
-        {
-            if (obj.go == null) continue;
-
-            try
-            {
-                // Disable all SpriteRenderers and Light2Ds in the object
-                var srs = obj.go.GetComponentsInChildren<SpriteRenderer>(true);
-                var lights = obj.go.GetComponentsInChildren<Light2D>(true);
-
-                foreach (var sr in srs)
+                items item = collide.GetComponent<items>();
+                if (item != null)
                 {
-                    sr.enabled = false;
+                    item.SetAvaible(true);
+                    currentDetectedFlashLightItem.Add(item);
                 }
-
-                foreach (var light in lights)
-                    light.enabled = false;
-
-                if (obj.enemy != null)
-                    obj.enemy.hitBylight = false;
             }
-            catch (MissingReferenceException) { continue; }
+
+            if (collide.CompareTag("Enemy"))
+            {
+                Enemy enemy = collide.GetComponent<Enemy>();
+                if (enemy != null)
+                {
+                    enemy.SetAvaible(true);
+                    enemy.hitBylight = true;
+                    currentDetectedFlashLightEnemy.Add(enemy);
+                }
+            }
         }
 
-        revealedObjects.Clear();
+        foreach (items prevItem in lastDetectFlashLightItem)
+        {
+            if (!currentDetectedFlashLightItem.Contains(prevItem))
+            {
+                prevItem.SetAvaible(false);
+            }
+        }
+
+        foreach (Enemy prevEnemy in lastDetectFlashLightEnemy)
+        {
+            if (!currentDetectedFlashLightEnemy.Contains(prevEnemy))
+            {
+                prevEnemy.SetAvaible(false);
+            }
+        }
+
+        lastDetectFlashLightItem = currentDetectedFlashLightItem.ToHashSet();
+        lastDetectFlashLightEnemy = currentDetectedFlashLightEnemy.ToHashSet();
     }
 
+    void HideAllObject()
+    {
+        foreach (items prevItem in lastDetectFlashLightItem)
+        {
+            if (!currentDetectedFlashLightItem.Contains(prevItem))
+            {
+                prevItem.SetAvaible(false);
+            }
+        }
 
+        foreach (Enemy prevEnemy in lastDetectFlashLightEnemy)
+        {
+            if (!currentDetectedFlashLightEnemy.Contains(prevEnemy))
+            {
+                prevEnemy.SetAvaible(false);
+            }
+        }
+    }
+
+    #endregion
 
     #region (Input System)
     public void TurnFlashLight(InputAction.CallbackContext context)
